@@ -1,0 +1,29 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def sim_dk(n=1000, bias=0, sig_o=1, sig_s=1):
+    x = np.random.normal(size=n) # create true ability score
+    o = x + np.random.normal(scale=sig_o, size=n) # create observed ability
+    s = x + bias + np.random.normal(scale=sig_o, size=n)
+    q_vals = np.quantile(o, [0, 0.25, 0.5, 0.75, 1])
+    q = pd.cut(o, bins=q_vals, labels=range(1, len(q_vals)), include_lowest=True)
+    return pd.DataFrame({'true_ability_score': x, 'observed_ability_score': o, 'other_observed_ability_score_with_bias': s, 'q': q})
+
+
+def make_qplot(data):
+    df_grouped = data.groupby('q').agg(Actual=('observed_ability_score', 'mean'), Perceived=('other_observed_ability_score_with_bias', 'mean')).reset_index()
+    df_melted = df_grouped.melt(id_vars='q', value_vars=['Actual', 'Perceived'], var_name='Type', value_name='val')
+    fig, ax = plt.subplots()
+    for name, group in df_melted.groupby('Type'):
+        ax.plot(group['q'], group['val'], marker='o', linestyle='-', label=name)
+    ax.set_xlabel('Quartile')
+    ax.set_ylabel('Score')
+    ax.set_title('Better Than Average Effect Simulation')
+    ax.legend()
+    plt.show()
+
+if __name__ == '__main__':
+    sim5 = sim_dk(bias=0.75, sig_o=1.1)
+    make_qplot(sim5)
